@@ -1,0 +1,895 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KAIROS — Seasonality Terminal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg0:#070b14; --bg1:#0a1120; --panel:#0d1626; --panel2:#111d33;
+  --line:#1c2a45; --line2:#24365a;
+  --txt:#dde7f8; --mut:#8294b8; --dim:#5a6b8f;
+  --amber:#ffb547; --amber2:#ffd489; --teal:#3fd8c2; --blue:#5aa9ff;
+  --cyan:#5fd0e6; --up:#2fc981; --dn:#f25672; --barup:#4db6c9; --bardn:#c9605a;
+  --mono:'IBM Plex Mono',monospace; --disp:'Barlow Condensed',sans-serif; --body:'IBM Plex Sans',sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:var(--bg0); color:var(--txt); font-family:var(--body); font-size:14px; min-height:100vh; overflow-x:hidden}
+body::before{content:""; position:fixed; inset:-20%; z-index:0; pointer-events:none;
+  background:radial-gradient(900px 500px at 12% -5%, rgba(95,208,230,.06), transparent 60%),
+  radial-gradient(800px 600px at 95% 10%, rgba(63,216,194,.05), transparent 60%),
+  radial-gradient(700px 700px at 60% 110%, rgba(90,169,255,.05), transparent 60%);
+  animation:drift 26s ease-in-out infinite alternate}
+body::after{content:""; position:fixed; inset:0; z-index:0; pointer-events:none; opacity:.5;
+  background:repeating-linear-gradient(0deg, transparent 0 47px, rgba(130,148,184,.045) 47px 48px),
+  repeating-linear-gradient(90deg, transparent 0 47px, rgba(130,148,184,.035) 47px 48px);
+  mask-image:radial-gradient(1200px 800px at 50% 20%, #000 30%, transparent 100%)}
+@keyframes drift{from{transform:translate(0,0)}to{transform:translate(3%,2%)}}
+.wrap{position:relative; z-index:1; max-width:1560px; margin:0 auto; padding:0 20px 60px}
+
+.topbar{display:flex; align-items:center; gap:18px; padding:16px 0 12px; border-bottom:1px solid var(--line)}
+.logo{display:flex; align-items:flex-end; gap:3px; height:30px; padding-bottom:2px}
+.logo i{width:6px; background:var(--cyan); border-radius:1px; animation:bar 2.2s ease-in-out infinite}
+.logo i:nth-child(1){height:40%}
+.logo i:nth-child(2){height:90%; background:var(--teal); animation-delay:.3s}
+.logo i:nth-child(3){height:60%; animation-delay:.6s}
+.logo i:nth-child(4){height:100%; background:var(--up); animation-delay:.9s}
+@keyframes bar{0%,100%{transform:scaleY(1)}50%{transform:scaleY(.55)}}
+.brand h1{font-family:var(--disp); font-weight:800; font-size:30px; letter-spacing:.14em; line-height:1}
+.brand h1 em{font-style:normal; color:var(--cyan)}
+.brand p{font-family:var(--mono); font-size:10px; color:var(--mut); letter-spacing:.24em; margin-top:3px}
+.topbar .spacer{flex:1}
+.asof{font-family:var(--mono); font-size:11px; color:var(--mut); text-align:right; line-height:1.6}
+.asof b{color:var(--txt)}
+.badge{display:inline-block; font-family:var(--mono); font-size:9px; letter-spacing:.18em; color:var(--cyan);
+  border:1px solid rgba(95,208,230,.4); padding:3px 8px; border-radius:3px; background:rgba(95,208,230,.07)}
+.btn{font-family:var(--mono); font-size:11px; letter-spacing:.1em; color:var(--txt); background:var(--panel2);
+  border:1px solid var(--line2); padding:8px 14px; border-radius:5px; cursor:pointer; transition:.18s}
+.btn:hover{border-color:var(--cyan); color:var(--cyan); transform:translateY(-1px)}
+
+.tape{overflow:hidden; border-bottom:1px solid var(--line); background:rgba(10,17,32,.7); margin:0 -20px}
+.tape-track{display:flex; width:max-content; animation:tape 48s linear infinite; padding:7px 0}
+.tape:hover .tape-track{animation-play-state:paused}
+@keyframes tape{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+.tape-item{display:flex; gap:8px; align-items:baseline; font-family:var(--mono); font-size:11px; padding:0 22px; white-space:nowrap; border-right:1px solid var(--line)}
+.tape-item .s{color:var(--amber2); font-weight:600}
+.tape-item .c.up{color:var(--up)} .tape-item .c.dn{color:var(--dn)}
+.tape-item .m{color:var(--dim); letter-spacing:.1em}
+
+.symrow{display:flex; gap:10px; padding:16px 0 4px; overflow-x:auto; scrollbar-width:thin}
+.sympill{flex:0 0 auto; display:flex; gap:12px; align-items:center; background:var(--panel); border:1px solid var(--line);
+  border-radius:8px; padding:9px 14px 9px 12px; cursor:pointer; transition:.18s; min-width:196px}
+.sympill:hover{border-color:var(--line2); transform:translateY(-2px)}
+.sympill.on{border-color:var(--cyan); background:linear-gradient(180deg, rgba(95,208,230,.09), rgba(95,208,230,.02)); box-shadow:0 6px 22px -10px rgba(95,208,230,.35)}
+.sympill .t{font-family:var(--disp); font-weight:700; font-size:19px; letter-spacing:.05em}
+.sympill .n{font-size:10.5px; color:var(--mut); margin-top:1px}
+.sympill .chg{font-family:var(--mono); font-size:10.5px; margin-left:auto}
+
+.controls{display:flex; flex-wrap:wrap; gap:14px; align-items:center; padding:12px 0 4px}
+.ctl-group{display:flex; align-items:center; gap:8px; background:var(--panel); border:1px solid var(--line); border-radius:7px; padding:6px 10px}
+.ctl-label{font-family:var(--mono); font-size:9.5px; letter-spacing:.2em; color:var(--dim)}
+.seg{display:flex; border:1px solid var(--line2); border-radius:5px; overflow:hidden}
+.seg button{font-family:var(--mono); font-size:11px; color:var(--mut); background:transparent; border:none; padding:6px 13px; cursor:pointer; transition:.15s; letter-spacing:.06em}
+.seg button+button{border-left:1px solid var(--line2)}
+.seg button.on{background:rgba(95,208,230,.14); color:var(--cyan)}
+.switch{position:relative; width:40px; height:20px; cursor:pointer}
+.switch input{display:none}
+.switch .tr{position:absolute; inset:0; background:var(--panel2); border:1px solid var(--line2); border-radius:20px; transition:.2s}
+.switch .tr::after{content:""; position:absolute; top:2px; left:2px; width:14px; height:14px; border-radius:50%; background:var(--dim); transition:.2s}
+.switch input:checked+.tr{background:rgba(63,216,194,.16); border-color:var(--teal)}
+.switch input:checked+.tr::after{left:22px; background:var(--teal); box-shadow:0 0 8px rgba(63,216,194,.7)}
+
+.kpis{display:grid; grid-template-columns:repeat(5,1fr); gap:12px; padding:14px 0 6px}
+.kpi{background:linear-gradient(180deg, var(--panel2), var(--panel)); border:1px solid var(--line); border-radius:8px;
+  padding:13px 16px 12px; position:relative; overflow:hidden; transition:.2s}
+.kpi:hover{transform:translateY(-3px); border-color:var(--line2)}
+.kpi::before{content:""; position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--kc,var(--cyan))}
+.kpi .l{font-family:var(--mono); font-size:9.5px; letter-spacing:.22em; color:var(--dim)}
+.kpi .v{font-family:var(--disp); font-weight:700; font-size:30px; letter-spacing:.02em; margin:5px 0 2px; line-height:1}
+.kpi .s{font-family:var(--mono); font-size:10.5px; color:var(--mut)}
+.kpi.flash .v{animation:flash .5s}
+@keyframes flash{0%{color:var(--amber2)}100%{color:var(--txt)}}
+.up-t{color:var(--up)} .dn-t{color:var(--dn)} .am-t{color:var(--amber)} .te-t{color:var(--teal)} .cy-t{color:var(--cyan)}
+
+.insight{margin:8px 0 14px; font-family:var(--mono); font-size:11.5px; color:var(--mut); background:rgba(13,22,38,.8);
+  border:1px solid var(--line); border-left:3px solid var(--cyan); border-radius:6px; padding:10px 14px; line-height:1.7}
+.insight b{color:var(--txt)} .ins-up{color:var(--up)} .ins-dn{color:var(--dn)}
+
+.grid{display:grid; grid-template-columns:minmax(0,1fr) 372px; gap:14px; align-items:start}
+.card{background:linear-gradient(180deg, rgba(17,29,51,.9), rgba(13,22,38,.9)); border:1px solid var(--line); border-radius:10px; overflow:hidden}
+.card-h{display:flex; align-items:center; gap:14px; padding:14px 18px 10px; border-bottom:1px solid var(--line); flex-wrap:wrap}
+.card-h .ct{font-family:var(--disp); font-weight:700; font-size:20px; letter-spacing:.08em}
+.card-h .ct small{font-family:var(--mono); font-size:9.5px; color:var(--dim); letter-spacing:.18em; margin-left:10px; vertical-align:2px}
+.q-px{font-family:var(--mono); font-size:20px; font-weight:600; margin-left:auto}
+.q-chg{font-family:var(--mono); font-size:12px; padding:3px 8px; border-radius:4px}
+.q-chg.up{color:var(--up); background:rgba(47,201,129,.12)} .q-chg.dn{color:var(--dn); background:rgba(242,86,114,.12)}
+.toolbar{display:flex; flex-wrap:wrap; gap:8px; align-items:center; padding:10px 18px; border-bottom:1px solid var(--line)}
+.tgl{font-family:var(--mono); font-size:10.5px; letter-spacing:.08em; color:var(--dim); background:transparent; border:1px solid var(--line);
+  border-radius:20px; padding:5px 12px; cursor:pointer; transition:.15s; display:flex; gap:7px; align-items:center}
+.tgl .dot{width:8px; height:8px; border-radius:2px; background:currentColor; opacity:.4}
+.tgl.on{color:var(--txt); border-color:var(--line2); background:var(--panel2)}
+.tgl.on .dot{opacity:1}
+.tgl:hover{border-color:var(--line2)}
+.toolbar .sp{flex:1}
+.qbtn{font-family:var(--mono); font-size:10px; color:var(--mut); background:transparent; border:1px solid var(--line); border-radius:4px; padding:5px 9px; cursor:pointer; transition:.15s}
+.qbtn:hover{color:var(--cyan); border-color:rgba(95,208,230,.5)}
+.chart-title{text-align:center; font-family:var(--mono); font-size:11px; color:var(--mut); letter-spacing:.1em; padding:12px 16px 0}
+.chart-title b{color:var(--txt)}
+.chart-wrap{position:relative; height:440px; cursor:crosshair}
+.chart-wrap canvas{display:block; width:100%; height:100%}
+.axis-note{position:absolute; right:16px; top:10px; font-family:var(--mono); font-size:9px; letter-spacing:.18em; color:var(--dim); text-align:right; line-height:1.7; pointer-events:none}
+#tooltip{position:absolute; pointer-events:none; background:rgba(8,13,24,.96); border:1px solid var(--line2); border-radius:6px;
+  padding:10px 12px; font-family:var(--mono); font-size:11px; line-height:1.8; display:none; z-index:5; min-width:190px; box-shadow:0 10px 30px rgba(0,0,0,.5)}
+#tooltip .tt-d{color:var(--cyan); font-weight:600; letter-spacing:.1em; border-bottom:1px solid var(--line); padding-bottom:5px; margin-bottom:5px}
+#tooltip .row{display:flex; justify-content:space-between; gap:16px}
+#tooltip .row .k{color:var(--dim)}
+.chips{display:flex; flex-wrap:wrap; gap:6px; padding:12px 18px 16px; border-top:1px solid var(--line)}
+.chip{font-family:var(--mono); font-size:10.5px; padding:4px 8px; border-radius:4px; border:1px solid var(--line2); cursor:pointer; transition:.15s; background:var(--panel2)}
+.chip.up{border-left:3px solid var(--up)} .chip.dn{border-left:3px solid var(--dn)}
+.chip.off{opacity:.3; filter:grayscale(.6)}
+.chip:hover{transform:translateY(-2px)}
+.hintline{padding:0 18px 14px; font-family:var(--mono); font-size:10px; color:var(--dim); letter-spacing:.06em}
+
+.side{display:flex; flex-direction:column; gap:14px}
+.phase-list{max-height:430px; overflow-y:auto; scrollbar-width:thin}
+.phase{display:flex; gap:12px; padding:12px 16px; border-bottom:1px solid var(--line); cursor:pointer; transition:.15s}
+.phase:hover{background:rgba(255,255,255,.025)}
+.phase.focus{background:rgba(95,208,230,.06); box-shadow:inset 3px 0 0 var(--cyan)}
+.ph-dir{font-size:16px; padding-top:2px}
+.phase.up .ph-dir{color:var(--up)} .phase.dn .ph-dir{color:var(--dn)}
+.ph-range{font-family:var(--disp); font-weight:700; font-size:17px; letter-spacing:.06em}
+.ph-meta{font-family:var(--mono); font-size:10px; color:var(--dim); margin:2px 0 6px}
+.ph-stats{font-family:var(--mono); font-size:11px; color:var(--mut)}
+.ph-stats b{color:var(--txt)}
+.phase.up .ph-stats .avg{color:var(--up)} .phase.dn .ph-stats .avg{color:var(--dn)}
+.wr-bar{height:4px; background:var(--line); border-radius:2px; margin-top:7px; overflow:hidden}
+.wr-bar i{display:block; height:100%; border-radius:2px}
+.phase.up .wr-bar i{background:var(--up)} .phase.dn .wr-bar i{background:var(--dn)}
+.ph-bw{font-family:var(--mono); font-size:9.5px; color:var(--dim); margin-top:6px}
+
+.win-body{padding:14px 16px 16px}
+.win-selects{display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:12px}
+.win-selects select{font-family:var(--mono); font-size:11px; background:var(--panel2); color:var(--txt); border:1px solid var(--line2); border-radius:5px; padding:6px 7px; cursor:pointer}
+.win-selects .arrow{color:var(--dim); font-family:var(--mono)}
+.win-empty{font-family:var(--mono); font-size:11px; color:var(--dim); line-height:1.9; padding:8px 0}
+.win-title{font-family:var(--disp); font-weight:700; font-size:21px; letter-spacing:.06em; margin-bottom:2px}
+.win-wrap-badge{font-family:var(--mono); font-size:9px; color:var(--blue); border:1px solid rgba(90,169,255,.4); border-radius:3px; padding:2px 6px; margin-left:8px; vertical-align:3px}
+.stat-grid{display:grid; grid-template-columns:1fr 1fr; gap:8px 14px; margin:12px 0 2px}
+.sg{border-left:2px solid var(--line2); padding-left:10px}
+.sg .l{font-family:var(--mono); font-size:9px; letter-spacing:.18em; color:var(--dim)}
+.sg .v{font-family:var(--mono); font-size:14.5px; font-weight:600; margin-top:2px}
+
+/* pattern analysis (Seasonax-style) */
+.pattern-card{margin-top:14px}
+.pa-grid{display:grid; grid-template-columns:1fr 1fr; gap:14px; padding:14px 16px}
+.pa-box{background:rgba(10,17,32,.55); border:1px solid var(--line); border-radius:8px; padding:12px 10px 8px}
+.pa-title{font-family:var(--mono); font-size:10px; letter-spacing:.22em; color:var(--mut); text-align:center; margin-bottom:10px}
+.pa-title b{color:var(--cyan)}
+.pa-box canvas{width:100%; height:216px; display:block}
+.pat-wrap{overflow-x:auto; padding:0 16px 16px; scrollbar-width:thin}
+table.heat{border-collapse:collapse; width:100%; min-width:980px}
+.heat th{font-family:var(--mono); font-size:10px; letter-spacing:.14em; color:var(--dim); padding:9px 4px; border-bottom:1px solid var(--line)}
+.heat td{font-family:var(--mono); font-size:11px; text-align:center; padding:6px 4px; border-bottom:1px solid rgba(28,42,69,.5); min-width:58px}
+.heat td.yr{color:var(--mut); text-align:left; padding-left:8px; font-weight:600}
+.heat td.ann{font-weight:600}
+.heat tr.avgrow td{border-top:2px solid var(--line2); border-bottom:none; color:var(--amber2); font-weight:600}
+.heat .wrsub{display:block; font-size:8.5px; color:var(--dim)}
+table.pat{min-width:900px}
+.pat td{cursor:default}
+.pat td:nth-child(odd){background:rgba(255,255,255,.015)}
+.pat tr:hover td{background:rgba(95,208,230,.05)}
+.heat-card{margin-top:14px}
+.heat td[data-m]{cursor:pointer; transition:.12s}
+.heat td[data-m]:hover{outline:1px solid var(--amber); outline-offset:-1px}
+
+footer{margin-top:26px; border-top:1px solid var(--line); padding-top:16px; display:flex; gap:20px; flex-wrap:wrap; font-family:var(--mono); font-size:10px; color:var(--dim); letter-spacing:.06em; line-height:1.9}
+footer b{color:var(--mut)}
+.reveal{opacity:0; transform:translateY(16px); transition:opacity .6s ease, transform .6s ease}
+.reveal.in{opacity:1; transform:none}
+@media(max-width:1180px){ .grid{grid-template-columns:1fr} .kpis{grid-template-columns:repeat(3,1fr)} }
+@media(max-width:900px){ .pa-grid{grid-template-columns:1fr} .kpis{grid-template-columns:repeat(2,1fr)} .topbar{flex-wrap:wrap} .chart-wrap{height:360px} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="topbar">
+    <div class="logo"><i></i><i></i><i></i><i></i></div>
+    <div class="brand">
+      <h1>KAIROS<em>·</em>SEASONALITY TERMINAL</h1>
+      <p>SINGLE-LINE SEASONAL PROFILE · PIVOT DETECTION · PATTERN STATISTICS</p>
+    </div>
+    <div class="spacer"></div>
+    <div class="asof">AS OF <b id="asOf">—</b><br><span class="badge">SYNTHETIC DEMO FEED · 32Y DAILY CLOSES</span></div>
+    <button class="btn" id="btnCsv">⇩ EXPORT CSV</button>
+  </header>
+
+  <div class="tape"><div class="tape-track" id="tapeTrack"></div></div>
+  <div class="symrow" id="symRow"></div>
+
+  <div class="controls">
+    <div class="ctl-group">
+      <span class="ctl-label">SCALE</span>
+      <div class="seg" id="segScale"><button data-v="lin" class="on">LINEAR</button><button data-v="log">LOG</button></div>
+    </div>
+    <div class="ctl-group">
+      <span class="ctl-label">DETREND</span>
+      <label class="switch"><input type="checkbox" id="tglDetrend"><span class="tr"></span></label>
+      <span class="ctl-label" style="letter-spacing:.05em">strip multi-year drift → isolate pivots</span>
+    </div>
+    <div class="ctl-group">
+      <span class="ctl-label">CURVE SMOOTH</span>
+      <div class="seg" id="segSmooth"><button data-v="1">RAW</button><button data-v="5" class="on">5D</button><button data-v="21">21D</button></div>
+    </div>
+  </div>
+
+  <div class="kpis">
+    <div class="kpi" style="--kc:var(--amber)"><div class="l">AVG ANNUAL RETURN</div><div class="v" id="kAnn">—</div><div class="s" id="kVol">—</div></div>
+    <div class="kpi" style="--kc:var(--up)"><div class="l">POSITIVE YEARS</div><div class="v" id="kPos">—</div><div class="s" id="kCons">—</div></div>
+    <div class="kpi" style="--kc:var(--up)"><div class="l">STRONGEST PHASE</div><div class="v up-t" id="kBestV">—</div><div class="s" id="kBestL">—</div></div>
+    <div class="kpi" style="--kc:var(--dn)"><div class="l">WEAKEST PHASE</div><div class="v dn-t" id="kWorstV">—</div><div class="s" id="kWorstL">—</div></div>
+    <div class="kpi" style="--kc:var(--cyan)"><div class="l">CURRENT PHASE · DEC 31</div><div class="v cy-t" id="kCurV">—</div><div class="s" id="kCurL">—</div></div>
+  </div>
+  <div class="insight" id="insightBar">—</div>
+
+  <div class="grid">
+    <section class="card reveal">
+      <div class="card-h">
+        <div>
+          <div class="ct" id="qName">—</div>
+          <div style="font-family:var(--mono);font-size:10px;color:var(--dim);letter-spacing:.16em;margin-top:2px" id="qSub">—</div>
+        </div>
+        <canvas id="sparkCv" width="128" height="40" style="margin-left:8px"></canvas>
+        <div class="q-px" id="qPx">—</div>
+        <div class="q-chg up" id="qChg">—</div>
+      </div>
+      <div class="toolbar">
+        <button class="tgl" id="tglYears"><span class="dot" style="color:var(--up)"></span>YEAR LINES</button>
+        <button class="tgl" id="tglMedian"><span class="dot" style="color:var(--teal)"></span>MEDIAN</button>
+        <button class="tgl" id="tglBand"><span class="dot" style="color:var(--amber)"></span>25–75% BAND</button>
+        <button class="tgl" id="tglBench"><span class="dot" style="color:var(--blue)"></span>BENCHMARK</button>
+        <div class="sp"></div>
+        <button class="qbtn" data-q="all">ALL YEARS</button>
+        <button class="qbtn" data-q="20">20Y</button>
+        <button class="qbtn" data-q="10">10Y</button>
+        <button class="qbtn" data-q="5">5Y</button>
+      </div>
+      <div class="chart-title" id="chartTitle">—</div>
+      <div class="chart-wrap" id="chartWrap">
+        <canvas id="chart"></canvas>
+        <div class="axis-note" id="axisNote">INDEXED TO 100 ON JAN 1<br>MEAN PROFILE · LINEAR</div>
+        <div id="tooltip"></div>
+      </div>
+      <div class="hintline">▸ DRAG ON CHART TO MEASURE A WINDOW (SUPPORTS NOV→FEB WRAP) · DOUBLE-CLICK CLEARS · CLICK A PHASE CARD OR HEATMAP MONTH TO LOAD IT</div>
+      <div class="chips" id="yearChips"></div>
+    </section>
+
+    <aside class="side">
+      <section class="card reveal">
+        <div class="card-h"><div class="ct">SEASONAL PHASES<small>AUTO PIVOT DETECTION · REALIZED STATS</small></div></div>
+        <div class="phase-list" id="phaseList"></div>
+      </section>
+      <section class="card reveal">
+        <div class="card-h"><div class="ct">CUSTOM WINDOW<small>DATE-RANGE ANALYZER</small></div></div>
+        <div class="win-body">
+          <div class="win-selects">
+            <select id="selSM"></select><select id="selSD"></select>
+            <span class="arrow">→</span>
+            <select id="selEM"></select><select id="selED"></select>
+            <button class="qbtn" id="btnWinApply">APPLY</button>
+            <button class="qbtn" id="btnWinClear">CLEAR</button>
+          </div>
+          <div id="winContent"></div>
+        </div>
+      </section>
+    </aside>
+  </div>
+
+  <!-- ===== SEASONAX-STYLE PATTERN ANALYSIS ===== -->
+  <section class="card pattern-card reveal" id="patternCard">
+    <div class="card-h"><div class="ct">PATTERN ANALYSIS<small id="patSub">SELECTED WINDOW · REALIZED PER-YEAR RESULTS</small></div></div>
+    <div class="pa-grid">
+      <div class="pa-box"><div class="pa-title">CUMULATIVE PROFIT — <b id="cumLbl">—</b></div><canvas id="cumCv"></canvas></div>
+      <div class="pa-box"><div class="pa-title">PATTERN RETURNS — <b id="barLbl">—</b></div><canvas id="barCv"></canvas></div>
+    </div>
+    <div class="pat-wrap"><table class="heat pat" id="patTable"></table></div>
+  </section>
+
+  <section class="card heat-card reveal">
+    <div class="card-h"><div class="ct">YEAR-BY-YEAR MATRIX<small>MONTHLY CLOSE-TO-CLOSE % · CLICK CELL = LOAD MONTH WINDOW</small></div></div>
+    <div class="pat-wrap"><table class="heat" id="heatTable"></table></div>
+  </section>
+
+  <footer>
+    <div><b>KAIROS TERMINAL v3.0</b> · SINGLE-FILE DEMO BUILD</div>
+    <div><b>DATASET:</b> SYNTHETIC DAILY CLOSES 1993–2024 WITH REGIME-AWARE SEASONALITY &amp; MARKET SHOCKS — DEMONSTRATION ONLY.</div>
+    <div><b>METHOD:</b> YEARS REBASED TO 100 ON FIRST CLOSE, ALIGNED ON CALENDAR FRACTION, CROSS-SECTIONAL MEAN = THE SINGLE SEASONAL LINE. DETREND DIVIDES OUT A LEAST-SQUARES LOG-TREND.</div>
+  </footer>
+</div>
+
+<script>
+"use strict";
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function gauss(rng){let u=0,v=0;while(u===0)u=rng();while(v===0)v=rng();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v)}
+const MON=['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+const CUM=[0,31,59,90,120,151,181,212,243,273,304,334,365];
+const N=253, YEARS_ALL=[]; for(let y=1994;y<=2024;y++)YEARS_ALL.push(y);
+const pad2=n=>String(n).padStart(2,'0');
+const fmtPct=(v,d=1)=>(v>=0?'+':'')+(v*100).toFixed(d)+'%';
+const fmtPx=v=>v>=1000?v.toLocaleString('en-US',{maximumFractionDigits:0}):v.toFixed(2);
+function gridLabel(i){const doy=Math.round(i/(N-1)*364)+1;let m=0;while(m<12&&CUM[m+1]<doy)m++;return MON[m]+' '+pad2(doy-CUM[m])}
+const doyOf=i=>Math.round(i/(N-1)*364)+1;
+function dateToGrid(m,d){const doy=CUM[m-1]+(d-1);return Math.max(0,Math.min(N-1,Math.round(doy/364*(N-1))))}
+function movAvg(a,w){if(w<=1)return a.slice();const n=a.length,o=new Array(n),h=(w-1)/2;for(let i=0;i<n;i++){let s=0,c=0;for(let j=Math.max(0,Math.round(i-h));j<=Math.min(n-1,Math.round(i+h+(w%1)));j++){s+=a[j];c++}o[i]=s/c}return o}
+function median(s){const n=s.length;return n%2?s[(n-1)/2]:(s[n/2-1]+s[n/2])/2}
+function quant(s,q){const p=(s.length-1)*q,b=Math.floor(p),r=p-b;return s[b+1]!==undefined?s[b]+r*(s[b+1]-s[b]):s[b]}
+function pearson(a,b){const n=a.length;let ma=0,mb=0;for(let i=0;i<n;i++){ma+=a[i];mb+=b[i]}ma/=n;mb/=n;let num=0,da=0,db=0;for(let i=0;i<n;i++){num+=(a[i]-ma)*(b[i]-mb);da+=(a[i]-ma)**2;db+=(b[i]-mb)**2}return num/Math.sqrt(da*db||1)}
+function niceStep(x){const p=Math.pow(10,Math.floor(Math.log10(Math.max(x,1e-9))));const r=x/p;return(r<1.5?1:r<3?2:r<7?5:10)*p}
+
+function tradingDays(year){const out=[];const d=new Date(Date.UTC(year,0,1));while(d.getUTCFullYear()===year){const wd=d.getUTCDay();if(wd!==0&&wd!==6){out.push({date:new Date(d),doy:Math.round((d-Date.UTC(year,0,0))/86400000),m:d.getUTCMonth()})}d.setUTCDate(d.getUTCDate()+1)}return out}
+const CAL={}; for(let y=1993;y<=2024;y++)CAL[y]=tradingDays(y);
+
+const SHOCKS=[['2000-09-01','2001-09-30',-0.0009],['2002-07-01','2002-10-15',-0.0012],['2007-11-01','2009-03-09',-0.0023],['2009-03-10','2009-12-31',0.0016],['2011-07-25','2011-10-03',-0.0014],['2015-08-01','2016-02-29',-0.0009],['2018-10-01','2018-12-26',-0.0022],['2020-02-17','2020-03-23',-0.0078],['2020-03-24','2020-08-31',0.0028],['2022-01-03','2022-12-30',-0.0011],['2023-10-27','2024-12-31',0.0012]];
+const pDate=s=>Date.parse(s+'T00:00:00Z');
+function shockAt(t){let add=0,volm=1;for(const[f,to,a]of SHOCKS){if(t>=pDate(f)&&t<=pDate(to)){add+=a;if(Math.abs(a)>=0.002)volm=1.7}}return[add,volm]}
+
+const SYMS=[
+ {sym:'SPX·C',name:'Composite 500 Index',sector:'BROAD MARKET',p0:465,drift:.08,vol:.011,beta:0,waves:[{a:.022,k:1,p:.88},{a:.013,k:2,p:.30}],c:'#5aa9ff'},
+ {sym:'AUR·X',name:'Aurum Gold Miners',sector:'PRECIOUS METALS',p0:52,drift:.055,vol:.019,beta:.45,waves:[{a:.062,k:1,p:.14},{a:.034,k:2,p:.72}],c:'#ffb547'},
+ {sym:'HEL·S',name:'Helios Solar Tech',sector:'RENEWABLES',p0:24,drift:.09,vol:.024,beta:1.0,waves:[{a:.072,k:1,p:.53},{a:.02,k:2,p:.55}],c:'#3fd8c2'},
+ {sym:'RET·X',name:'Meridian Retail Group',sector:'CONSUMER DISCR.',p0:68,drift:.085,vol:.016,beta:.85,waves:[{a:.076,k:1,p:.93},{a:.02,k:2,p:.95}],c:'#f2a0c0'},
+ {sym:'NRG·G',name:'Northwind Nat-Gas',sector:'ENERGY',p0:31,drift:.03,vol:.027,beta:.35,waves:[{a:.086,k:1,p:.78},{a:.028,k:2,p:.80}],c:'#8fd16a'},
+ {sym:'AGR·H',name:'Harvest Agri Corp',sector:'AGRICULTURE',p0:44,drift:.05,vol:.017,beta:.55,waves:[{a:.06,k:1,p:.48}],c:'#d8b06a'},
+ {sym:'VNT·Q',name:'Vanta Tech-100',sector:'TECHNOLOGY',p0:120,drift:.115,vol:.015,beta:1.15,waves:[{a:.046,k:1,p:.99},{a:.02,k:2,p:.02}],c:'#b48ff0'}];
+
+const DATA={};
+(function generate(){
+  const rngM=mulberry32(777), mkt={};
+  for(let y=1993;y<=2024;y++){mkt[y]={r:[]};for(const d of CAL[y]){const[sa,vm]=shockAt(+d.date);mkt[y].r.push(.075/252+sa+.011*vm*gauss(rngM))}}
+  SYMS.forEach((def,si)=>{
+    const rng=mulberry32(1000+si*1717);
+    const season=f=>def.waves.reduce((s,w)=>s+w.a*Math.cos(2*Math.PI*w.k*(f-w.p)),0);
+    const closes={};let price=def.p0;
+    for(let y=1993;y<=2024;y++){
+      const days=CAL[y];closes[y]=[];
+      let ampMod=.75+.5*rng(); if(rng()<.12)ampMod*=-.55;
+      const driftY=def.drift*(1+.5*Math.sin(2*Math.PI*(y-1993)/9+si*1.3));
+      let prevF=null;
+      for(let i=0;i<days.length;i++){
+        const d=days[i],f=(d.doy-1)/364;
+        const sNow=season(f)*ampMod, sPrev=prevF===null?sNow:season(prevF)*ampMod;
+        let r=driftY/252+def.beta*mkt[y].r[i]+(sNow-sPrev)+def.vol*gauss(rng);
+        if(rng()<.004)r+=(rng()<.5?-1:1)*(2+3*rng())*def.vol;
+        price*=Math.exp(r); closes[y].push(price); prevF=f;
+      }
+    }
+    const rec={def,closes,years:{},yearList:YEARS_ALL.slice(),dailyRets:[]};
+    for(let y=1993;y<=2024;y++){
+      const cs=closes[y],ds=CAL[y].map(d=>d.doy),D=ds.length,base=cs[0];
+      const grid=new Float64Array(N);let p=0;
+      for(let i=0;i<N;i++){const f=i/(N-1);
+        while(p<D-2&&(ds[p+1]-1)/(D-1)<f)p++;
+        while(p>0&&(ds[p]-1)/(D-1)>f)p--;
+        const f0=(ds[p]-1)/(D-1),f1=(ds[Math.min(p+1,D-1)]-1)/(D-1);
+        const t=f1>f0?Math.max(0,Math.min(1,(f-f0)/(f1-f0))):0;
+        grid[i]=(cs[p]+(cs[Math.min(p+1,D-1)]-cs[p])*t)/base*100;}
+      rec.years[y]={grid,annRet:0,monthRets:new Array(12).fill(null)};
+      for(let i=1;i<cs.length;i++)rec.dailyRets.push(cs[i]/cs[i-1]-1);
+    }
+    for(let y=1994;y<=2024;y++){
+      const cs=closes[y],ds=CAL[y];
+      const lastM=new Array(12).fill(null);
+      for(let i=0;i<ds.length;i++)lastM[ds[i].m]=cs[i];
+      const prevLast=closes[y-1][closes[y-1].length-1];
+      rec.years[y].annRet=cs[cs.length-1]/prevLast-1;
+      for(let m=0;m<12;m++){const base=m===0?prevLast:lastM[m-1];if(lastM[m]!=null&&base!=null)rec.years[y].monthRets[m]=lastM[m]/base-1}
+    }
+    const lastY=closes[2024];rec.last=lastY[lastY.length-1];rec.prev=lastY[lastY.length-2];
+    DATA[def.sym]=rec;
+  });
+})();
+
+const state={sym:'AUR·X',scale:'lin',detrend:false,smooth:5,
+  show:{years:false,median:false,band:false,bench:false},
+  active:new Set(YEARS_ALL),win:null,focusPhase:-1,hoverI:-1,anim:0,view:null};
+
+function windowStats(rec,actYears,i0,i1,wrap){
+  const out=[];
+  for(const y of actYears){
+    if(wrap){ if(rec.years[y+1]&&state.active.has(y+1)) out.push({label:String(y),year:y,ret:rec.years[y+1].grid[i1]/rec.years[y].grid[i0]-1}); }
+    else out.push({label:String(y),year:y,ret:rec.years[y].grid[i1]/rec.years[y].grid[i0]-1});
+  }
+  if(out.length<2)return null;
+  const rs=out.map(o=>o.ret).sort((a,b)=>a-b);
+  const mean=rs.reduce((a,b)=>a+b,0)/rs.length;
+  const std=Math.sqrt(rs.reduce((a,b)=>a+(b-mean)**2,0)/(rs.length-1));
+  const best=out.reduce((a,b)=>b.ret>a.ret?b:a),worst=out.reduce((a,b)=>b.ret<a.ret?b:a);
+  return{rows:out,n:rs.length,mean,med:median(rs),std,win:rs.filter(r=>r>0).length/rs.length,best,worst,compound:rs.reduce((a,r)=>a*(1+r),1)-1};
+}
+function dayIdxForDoy(year,target){const ds=CAL[year];for(let i=0;i<ds.length;i++)if(ds[i].doy>=target)return i;return ds.length-1}
+function windowDetailRows(rec,act,win){
+  const rows=[];
+  for(const y of act){
+    if(win.wrap&&!(rec.years[y+1]&&state.active.has(y+1)))continue;
+    const ey=win.wrap?y+1:y;
+    const sI=dayIdxForDoy(y,doyOf(win.i0)), eI=dayIdxForDoy(ey,doyOf(win.i1));
+    const sPx=rec.closes[y][sI], ePx=rec.closes[ey][eI];
+    let mx=sPx,mn=sPx;
+    const csY=rec.closes[y];
+    if(!win.wrap){for(let i=sI;i<=eI;i++){mx=Math.max(mx,csY[i]);mn=Math.min(mn,csY[i])}}
+    else{for(let i=sI;i<csY.length;i++){mx=Math.max(mx,csY[i]);mn=Math.min(mn,csY[i])}
+      const csN=rec.closes[ey];for(let i=0;i<=eI;i++){mx=Math.max(mx,csN[i]);mn=Math.min(mn,csN[i])}}
+    rows.push({label:String(y),year:y,sDate:CAL[y][sI].date,sPx,eDate:CAL[ey][eI].date,ePx,
+      profit:ePx-sPx,ret:ePx/sPx-1,maxRise:mx/sPx-1,maxDrop:mn/sPx-1});
+  }
+  return rows;
+}
+function zigzag(c){
+  const thr=1.05,n=c.length,piv=[{i:0,v:c[0]}];
+  let dir=0,hi={i:0,v:c[0]},lo={i:0,v:c[0]},lastI=0;
+  for(let i=1;i<n;i++){const v=c[i];
+    if(v>hi.v)hi={i,v}; if(v<lo.v)lo={i,v};
+    if(dir<=0&&v-lo.v>=thr&&lo.i>lastI){piv.push({i:lo.i,v:lo.v});dir=1;lastI=lo.i;hi={i,v}}
+    else if(dir>=0&&hi.v-v>=thr&&hi.i>lastI){piv.push({i:hi.i,v:hi.v});dir=-1;lastI=hi.i;lo={i,v}}}
+  const cand=dir<0?lo:(dir>0?hi:(hi.v-c[0]>c[0]-lo.v?hi:lo));
+  if(cand.i>lastI&&cand.i<n-1)piv.push(cand);
+  piv.push({i:n-1,v:c[n-1]});
+  const out=[piv[0]];
+  for(let k=1;k<piv.length-1;k++){const p=piv[k],prev=out[out.length-1];
+    if(out.length===1){out.push(p);continue}
+    const prev2=out[out.length-2],prevHigh=prev.v>prev2.v,pHigh=p.v>prev.v;
+    if(pHigh===prevHigh){if(pHigh?p.v>prev.v:p.v<prev.v)out[out.length-1]=p}else out.push(p)}
+  out.push(piv[piv.length-1]);
+  let merged=true;
+  while(merged){merged=false;
+    for(let k=1;k<out.length-1;k++){if(out[k].i-out[k-1].i<6||out[k+1].i-out[k].i<6){out.splice(k,1);merged=true;break}}}
+  return out;
+}
+
+function computeView(){
+  const rec=DATA[state.sym];
+  const act=YEARS_ALL.filter(y=>state.active.has(y));
+  const curves=act.map(y=>rec.years[y].grid);
+  const mean=new Array(N),med=new Array(N),p25=new Array(N),p75=new Array(N);
+  for(let i=0;i<N;i++){const col=curves.map(c=>c[i]).sort((a,b)=>a-b);
+    mean[i]=col.reduce((a,b)=>a+b,0)/col.length;med[i]=median(col);p25[i]=quant(col,.25);p75[i]=quant(col,.75)}
+  const sMean=movAvg(mean,state.smooth),sMed=movAvg(med,state.smooth),sP25=movAvg(p25,state.smooth),sP75=movAvg(p75,state.smooth);
+  let trend=new Array(N).fill(100);
+  if(state.detrend){
+    let sx=0,sy=0,sxx=0,sxy=0;
+    for(let i=0;i<N;i++){const x=i/(N-1),yv=Math.log(Math.max(sMean[i],1e-6));sx+=x;sy+=yv;sxx+=x*x;sxy+=x*yv}
+    const b=(N*sxy-sx*sy)/(N*sxx-sx*sx),a=(sy-b*sx)/N;
+    for(let i=0;i<N;i++)trend[i]=Math.exp(a+b*i/(N-1));}
+  const dv=arr=>arr.map((v,i)=>v/trend[i]*100);
+  const dMean=dv(sMean),dMed=dv(sMed),dP25=dv(sP25),dP75=dv(sP75);
+  const yearObjs=act.map(y=>({year:y,curve:dv(Array.from(rec.years[y].grid)),annRet:rec.years[y].annRet}));
+  let bench=null;
+  if(state.sym!=='SPX·C'){
+    const bRec=DATA['SPX·C'],bCurves=act.map(y=>bRec.years[y].grid);
+    const bm=new Array(N);for(let i=0;i<N;i++)bm[i]=bCurves.reduce((a,c)=>a+c[i],0)/bCurves.length;
+    let bt=new Array(N).fill(100);
+    if(state.detrend){let sx=0,sy=0,sxx=0,sxy=0;
+      for(let i=0;i<N;i++){const x=i/(N-1),yv=Math.log(Math.max(bm[i],1e-6));sx+=x;sy+=yv;sxx+=x*x;sxy+=x*yv}
+      const b=(N*sxy-sx*sy)/(N*sxx-sx*sx),a=(sy-b*sx)/N;
+      for(let i=0;i<N;i++)bt[i]=Math.exp(a+b*i/(N-1));}
+    bench=bm.map((v,i)=>v/bt[i]*100);}
+  const pivs=zigzag(dMean),phases=[];
+  for(let k=0;k<pivs.length-1;k++){
+    const i0=pivs[k].i,i1=pivs[k+1].i;if(i1-i0<6)continue;
+    const st=windowStats(rec,act,i0,i1,false);if(!st)continue;
+    phases.push({i0,i1,up:dMean[i1]>=dMean[i0],stats:st});}
+  const cons=yearObjs.reduce((a,y)=>a+pearson(y.curve,dMean),0)/yearObjs.length;
+  const annRets=act.map(y=>rec.years[y].annRet);
+  const avgAnn=annRets.reduce((a,b)=>a+b,0)/annRets.length;
+  const dr=rec.dailyRets,drm=dr.reduce((a,b)=>a+b,0)/dr.length;
+  const vol=Math.sqrt(dr.reduce((a,b)=>a+(b-drm)**2,0)/dr.length)*Math.sqrt(252);
+  const posN=annRets.filter(r=>r>0).length;
+  const solid=phases.filter(p=>p.i1-p.i0>=14);
+  const best=solid.length?solid.reduce((a,b)=>b.stats.mean>a.stats.mean?b:a):null;
+  const worst=solid.length?solid.reduce((a,b)=>b.stats.mean<a.stats.mean?b:a):null;
+  const cur=phases.filter(p=>p.i1>=N-2).slice(-1)[0]||null;
+  state.view={rec,act,dMean,dMed,dP25,dP75,yearObjs,bench,phases,cons,
+    kpi:{avgAnn,vol,posN,n:act.length,best,worst,cur}};
+  state.focusPhase=Math.min(state.focusPhase,phases.length-1);
+}
+
+/* ---------- main chart ---------- */
+const cv=document.getElementById('chart'),ctx=cv.getContext('2d'),wrapEl=document.getElementById('chartWrap'),tip=document.getElementById('tooltip');
+const PAD={l:56,r:16,t:14,b:32};
+let W=0,H=0,drag=null;
+function sizeCanvas(){const r=wrapEl.getBoundingClientRect(),d=window.devicePixelRatio||1;
+  W=r.width;H=r.height;cv.width=W*d;cv.height=H*d;ctx.setTransform(d,0,0,d,0,0)}
+function draw(){
+  const v=state.view;if(!v)return;
+  ctx.clearRect(0,0,W,H);
+  const pw=W-PAD.l-PAD.r,ph=H-PAD.t-PAD.b,bottom=PAD.t+ph;
+  const X=f=>PAD.l+f*pw;
+  let lo=Infinity,hi=-Infinity;
+  const feed=a=>{for(const x of a){if(x<lo)lo=x;if(x>hi)hi=x}};
+  feed(v.dMean);
+  if(state.show.median)feed(v.dMed);
+  if(state.show.band){feed(v.dP25);feed(v.dP75)}
+  if(state.show.years)v.yearObjs.forEach(y=>feed(y.curve));
+  if(state.show.bench&&v.bench)feed(v.bench);
+  const useLog=state.scale==='log';
+  const T=x=>useLog?Math.log10(Math.max(x,.01)):x;
+  let tLo=T(lo),tHi=T(hi);const padY=(tHi-tLo)*.07;tLo-=padY;tHi+=padY;
+  const Y=val=>PAD.t+(1-(T(val)-tLo)/(tHi-tLo))*ph;
+  // watermark
+  ctx.save();ctx.font='800 96px "Barlow Condensed"';ctx.textAlign='center';ctx.fillStyle='rgba(221,231,248,.05)';
+  ctx.fillText('KAIROS',PAD.l+pw/2,PAD.t+ph/2+20);ctx.restore();
+  // month grid
+  ctx.font='10px "IBM Plex Mono"';ctx.textAlign='center';
+  for(let m=0;m<12;m++){
+    const gx=X(CUM[m]/364);
+    ctx.strokeStyle='rgba(130,148,184,.12)';
+    ctx.beginPath();ctx.moveTo(gx,PAD.t);ctx.lineTo(gx,bottom);ctx.stroke();
+    ctx.fillStyle='#8294b8';ctx.fillText(MON[m],X((CUM[m]+CUM[m+1])/2/364),H-12);}
+  // y ticks
+  const step=niceStep((Math.pow(10,tHi)-Math.pow(10,tLo))/7);
+  ctx.textAlign='right';
+  for(let tv=Math.ceil(Math.pow(10,tLo)/step)*step;(useLog?Math.log10(tv)<tHi:tv<=Math.pow(10,tHi));tv+=step){
+    const gy=Y(tv);if(gy<PAD.t||gy>bottom)continue;
+    ctx.strokeStyle='rgba(130,148,184,.09)';ctx.beginPath();ctx.moveTo(PAD.l,gy);ctx.lineTo(W-PAD.r,gy);ctx.stroke();
+    ctx.fillStyle='#5a6b8f';ctx.fillText(Math.round(tv*10)/10,PAD.l-8,gy+3);}
+  // baseline 100
+  ctx.setLineDash([4,4]);ctx.strokeStyle='rgba(240,246,255,.14)';
+  ctx.beginPath();ctx.moveTo(PAD.l,Y(100));ctx.lineTo(W-PAD.r,Y(100));ctx.stroke();ctx.setLineDash([]);
+  // phase bands (subtle)
+  v.phases.forEach((p,k)=>{
+    const x0=X(p.i0/(N-1)),x1=X(p.i1/(N-1)),emph=k===state.focusPhase;
+    ctx.fillStyle=p.up?`rgba(47,201,129,${emph?.14:.045})`:`rgba(242,86,114,${emph?.14:.045})`;
+    ctx.fillRect(x0,PAD.t,x1-x0,ph);
+    if(emph){ctx.strokeStyle=p.up?'rgba(47,201,129,.6)':'rgba(242,86,114,.6)';ctx.strokeRect(x0+.5,PAD.t+.5,x1-x0-1,ph-1)}});
+  // window markers (Seasonax-style white verticals)
+  const win=drag?{i0:Math.min(drag.i0,drag.i1),i1:Math.max(drag.i0,drag.i1),wrap:false}:state.win;
+  if(win){const segs=win.wrap?[[win.i0,N-1],[0,win.i1]]:[[win.i0,win.i1]];
+    for(const[a,b]of segs){const x0=X(a/(N-1)),x1=X(b/(N-1));
+      ctx.fillStyle='rgba(240,246,255,.035)';ctx.fillRect(x0,PAD.t,x1-x0,ph);
+      ctx.strokeStyle='rgba(240,246,255,.85)';ctx.lineWidth=1.4;
+      ctx.beginPath();ctx.moveTo(x0,PAD.t);ctx.lineTo(x0,bottom);ctx.moveTo(x1,PAD.t);ctx.lineTo(x1,bottom);ctx.stroke();ctx.lineWidth=1;}}
+  // reveal clip
+  ctx.save();ctx.beginPath();ctx.rect(PAD.l-1,0,(pw+2)*state.anim,H);ctx.clip();
+  const path=arr=>{ctx.beginPath();for(let i=0;i<N;i++){const px=X(i/(N-1)),py=Y(arr[i]);i===0?ctx.moveTo(px,py):ctx.lineTo(px,py)}};
+  if(state.show.band&&v.act.length>=3){
+    ctx.beginPath();
+    for(let i=0;i<N;i++){const px=X(i/(N-1)),py=Y(v.dP75[i]);i===0?ctx.moveTo(px,py):ctx.lineTo(px,py)}
+    for(let i=N-1;i>=0;i--)ctx.lineTo(X(i/(N-1)),Y(v.dP25[i]));
+    ctx.closePath();ctx.fillStyle='rgba(255,181,71,.09)';ctx.fill();}
+  if(state.show.years){v.yearObjs.forEach(yo=>{
+    const up=yo.annRet>=0;
+    ctx.strokeStyle=up?`rgba(47,201,129,${.16+Math.min(Math.abs(yo.annRet),.4)*.55})`:`rgba(242,86,114,${.16+Math.min(Math.abs(yo.annRet),.4)*.55})`;
+    ctx.lineWidth=1;path(yo.curve);ctx.stroke();});}
+  if(state.show.bench&&v.bench){ctx.setLineDash([6,4]);ctx.strokeStyle='rgba(90,169,255,.75)';ctx.lineWidth=1.4;path(v.bench);ctx.stroke();ctx.setLineDash([]);}
+  if(state.show.median){ctx.setLineDash([2,3]);ctx.strokeStyle='#3fd8c2';ctx.lineWidth=1.6;path(v.dMed);ctx.stroke();ctx.setLineDash([]);}
+  /* THE single seasonal line + area fill */
+  const g=ctx.createLinearGradient(0,PAD.t,0,bottom);
+  g.addColorStop(0,'rgba(95,208,230,.26)');g.addColorStop(1,'rgba(95,208,230,.02)');
+  ctx.beginPath();
+  for(let i=0;i<N;i++){const px=X(i/(N-1)),py=Y(v.dMean[i]);i===0?ctx.moveTo(px,py):ctx.lineTo(px,py)}
+  ctx.lineTo(X(1),bottom);ctx.lineTo(X(0),bottom);ctx.closePath();ctx.fillStyle=g;ctx.fill();
+  ctx.shadowColor='rgba(95,208,230,.45)';ctx.shadowBlur=6;
+  ctx.strokeStyle='#5fd0e6';ctx.lineWidth=1.8;path(v.dMean);ctx.stroke();ctx.shadowBlur=0;
+  // pivot markers
+  ctx.fillStyle='#ffd489';
+  v.phases.forEach(p=>{[p.i0,p.i1].forEach(i=>{if(i===0||i===N-1)return;
+    const px=X(i/(N-1)),py=Y(v.dMean[i]);
+    ctx.beginPath();ctx.moveTo(px,py-5);ctx.lineTo(px+4,py+2);ctx.lineTo(px-4,py+2);ctx.closePath();ctx.fill();});});
+  ctx.restore();
+  // hover
+  if(state.hoverI>=0){
+    const i=state.hoverI,hx=X(i/(N-1));
+    ctx.strokeStyle='rgba(221,231,248,.3)';ctx.setLineDash([3,3]);
+    ctx.beginPath();ctx.moveTo(hx,PAD.t);ctx.lineTo(hx,bottom);ctx.stroke();ctx.setLineDash([]);
+    ctx.fillStyle='#5fd0e6';ctx.beginPath();ctx.arc(hx,Y(v.dMean[i]),3.8,0,7);ctx.fill();
+    ctx.strokeStyle='#0a1120';ctx.lineWidth=1.5;ctx.stroke();ctx.lineWidth=1;}
+}
+function animate(){const t0=performance.now();
+  const step=t=>{let p=Math.min(1,(t-t0)/750);state.anim=1-Math.pow(1-p,3);draw();if(p<1)requestAnimationFrame(step)};
+  requestAnimationFrame(step);}
+
+wrapEl.addEventListener('mousemove',e=>{
+  const r=wrapEl.getBoundingClientRect(),x=e.clientX-r.left,v=state.view;if(!v)return;
+  const f=(x-PAD.l)/(W-PAD.l-PAD.r);
+  if(f<0||f>1){hideTip();return}
+  const i=Math.max(0,Math.min(N-1,Math.round(f*(N-1))));
+  state.hoverI=i;
+  if(drag){drag.i1=i;tip.style.display='none';draw();return}
+  const posN=v.yearObjs.filter(y=>y.curve[i]>100).length;
+  tip.innerHTML=`<div class="tt-d">${gridLabel(i)}</div>
+    <div class="row"><span class="k">MEAN LINE</span><span style="color:#5fd0e6">${v.dMean[i].toFixed(1)} (${fmtPct(v.dMean[i]/100-1)})</span></div>
+    <div class="row"><span class="k">MEDIAN</span><span style="color:#3fd8c2">${v.dMed[i].toFixed(1)}</span></div>
+    <div class="row"><span class="k">25–75%</span><span>${v.dP25[i].toFixed(1)} – ${v.dP75[i].toFixed(1)}</span></div>
+    <div class="row"><span class="k">YEARS ABOVE START</span><span>${posN}/${v.yearObjs.length} · ${(100*posN/v.yearObjs.length).toFixed(0)}%</span></div>`;
+  tip.style.display='block';
+  const tw=tip.offsetWidth;
+  tip.style.left=Math.min(W-tw-12,x+16)+'px';
+  tip.style.top=Math.max(8,Math.min(H-tip.offsetHeight-10,e.clientY-r.top-30))+'px';
+  draw();
+});
+function hideTip(){tip.style.display='none';state.hoverI=-1;draw()}
+wrapEl.addEventListener('mouseleave',()=>{if(!drag)hideTip()});
+wrapEl.addEventListener('mousedown',e=>{
+  const r=wrapEl.getBoundingClientRect(),f=(e.clientX-r.left-PAD.l)/(W-PAD.l-PAD.r);
+  if(f<0||f>1)return;
+  const i=Math.max(0,Math.min(N-1,Math.round(f*(N-1))));
+  drag={a:i,i0:i,i1:i,x0:e.clientX};
+});
+window.addEventListener('mouseup',e=>{
+  if(!drag)return;
+  if(Math.abs(e.clientX-drag.x0)>5&&Math.abs(drag.i1-drag.a)>2){
+    state.win={i0:Math.min(drag.a,drag.i1),i1:Math.max(drag.a,drag.i1),wrap:false};
+    state.focusPhase=-1;syncSelectsFromWin();refreshWindowConsumers();}
+  else draw();
+  drag=null;
+});
+wrapEl.addEventListener('dblclick',()=>{state.win=null;state.focusPhase=-1;refreshWindowConsumers()});
+
+/* ---------- phases ---------- */
+function renderPhases(){
+  const v=state.view,el=document.getElementById('phaseList');
+  if(!v.phases.length){el.innerHTML='<div class="win-empty" style="padding:16px">No significant pivots at current settings.</div>';return}
+  el.innerHTML=v.phases.map((p,k)=>{
+    const s=p.stats;
+    return `<div class="phase ${p.up?'up':'dn'} ${k===state.focusPhase?'focus':''}" data-k="${k}">
+      <div class="ph-dir">${p.up?'▲':'▼'}</div>
+      <div style="flex:1">
+        <div class="ph-range">${gridLabel(p.i0)} → ${gridLabel(p.i1)}</div>
+        <div class="ph-meta">${Math.round((p.i1-p.i0)/(N-1)*365)} CAL DAYS · ${s.n}Y SAMPLE</div>
+        <div class="ph-stats">AVG <b class="avg">${fmtPct(s.mean)}</b> · WIN <b>${(s.win*100).toFixed(0)}%</b> · MED <b>${fmtPct(s.med)}</b></div>
+        <div class="wr-bar"><i style="width:${(s.win*100).toFixed(0)}%"></i></div>
+        <div class="ph-bw">BEST ${fmtPct(s.best.ret)} (${s.best.label}) · WORST ${fmtPct(s.worst.ret)} (${s.worst.label})</div>
+      </div></div>`;}).join('');
+  el.querySelectorAll('.phase').forEach(d=>d.addEventListener('click',()=>{
+    const p=v.phases[+d.dataset.k];
+    state.focusPhase=+d.dataset.k;state.win={i0:p.i0,i1:p.i1,wrap:false};
+    syncSelectsFromWin();refreshWindowConsumers();}));
+}
+
+/* ---------- window panel ---------- */
+function initSelects(){
+  MON.forEach((m,i)=>{selSM.insertAdjacentHTML('beforeend',`<option value="${i+1}">${m}</option>`);selEM.insertAdjacentHTML('beforeend',`<option value="${i+1}">${m}</option>`)});
+  for(let d=1;d<=28;d++){selSD.insertAdjacentHTML('beforeend',`<option>${pad2(d)}</option>`);selED.insertAdjacentHTML('beforeend',`<option>${pad2(d)}</option>`)}
+  selSM.value=11;selSD.value=1;selEM.value=12;selED.value=28;
+}
+function gridToMD(i){const doy=doyOf(i);let m=0;while(m<12&&CUM[m+1]<doy)m++;return[m+1,doy-CUM[m]]}
+function syncSelectsFromWin(){if(!state.win)return;
+  const[a,b]=gridToMD(state.win.i0),[c,d]=gridToMD(state.win.i1);
+  selSM.value=a;selSD.value=pad2(b);selEM.value=c;selED.value=pad2(d);}
+function renderWindow(){
+  const el=document.getElementById('winContent'),v=state.view;
+  if(!state.win){el.innerHTML='<div class="win-empty">No window selected.<br>Drag across the chart, click a phase card,<br>click a heatmap month, or use the selectors above.</div>';return}
+  const w=state.win,st=windowStats(v.rec,v.act,w.i0,w.i1,w.wrap);
+  if(!st){el.innerHTML='<div class="win-empty">Not enough active years.</div>';return}
+  el.innerHTML=`<div class="win-title">${gridLabel(w.i0)} → ${gridLabel(w.i1)}${w.wrap?'<span class="win-wrap-badge">WRAPS YEAR</span>':''}</div>
+    <div class="stat-grid">
+      <div class="sg"><div class="l">AVG RETURN</div><div class="v ${st.mean>=0?'up-t':'dn-t'}">${fmtPct(st.mean)}</div></div>
+      <div class="sg"><div class="l">MEDIAN</div><div class="v">${fmtPct(st.med)}</div></div>
+      <div class="sg"><div class="l">WIN RATE</div><div class="v">${(st.win*100).toFixed(0)}% <span style="color:var(--dim);font-size:10px">${st.rows.filter(r=>r.ret>0).length}/${st.n}</span></div></div>
+      <div class="sg"><div class="l">DISPERSION σ</div><div class="v">${(st.std*100).toFixed(1)}%</div></div>
+      <div class="sg"><div class="l">BEST</div><div class="v up-t">${fmtPct(st.best.ret)} <span style="color:var(--dim);font-size:10px">${st.best.label}</span></div></div>
+      <div class="sg"><div class="l">WORST</div><div class="v dn-t">${fmtPct(st.worst.ret)} <span style="color:var(--dim);font-size:10px">${st.worst.label}</span></div></div>
+      <div class="sg" style="grid-column:1/-1"><div class="l">IF REPEATED EVERY YEAR · COMPOUNDED</div><div class="v ${st.compound>=0?'up-t':'dn-t'}">${fmtPct(st.compound)}</div></div>
+    </div>`;
+}
+
+/* ---------- pattern analysis (cumulative / bars / table) ---------- */
+function fitCanvas(c){const r=c.getBoundingClientRect(),d=window.devicePixelRatio||1;
+  c.width=Math.max(50,r.width*d);c.height=Math.max(50,r.height*d);
+  const g=c.getContext('2d');g.setTransform(d,0,0,d,0,0);return[g,r.width,r.height]}
+function renderPattern(){
+  const v=state.view,cumCv=document.getElementById('cumCv'),barCv=document.getElementById('barCv'),tbl=document.getElementById('patTable');
+  const sub=document.getElementById('patSub');
+  if(!state.win){sub.textContent='NO WINDOW SELECTED';
+    [cumCv,barCv].forEach(c=>{const[g,w,h]=fitCanvas(c);g.clearRect(0,0,w,h);
+      g.font='11px "IBM Plex Mono"';g.fillStyle='#5a6b8f';g.textAlign='center';
+      g.fillText('— select a window —',w/2,h/2)});
+    tbl.innerHTML='';return;}
+  const rows=windowDetailRows(v.rec,v.act,state.win);
+  const lbl=`${gridLabel(state.win.i0)} → ${gridLabel(state.win.i1)}`;
+  sub.textContent=`${lbl} · ${rows.length} OCCURRENCES`;
+  document.getElementById('cumLbl').textContent=lbl;
+  document.getElementById('barLbl').textContent=lbl;
+  /* cumulative */
+  {const[g,w,h]=fitCanvas(cumCv);g.clearRect(0,0,w,h);
+    const vals=[100];for(let i=1;i<rows.length;i++)vals.push(vals[i-1]*(1+rows[i].ret));
+    const lo=Math.min(...vals),hi=Math.max(...vals),pad=(hi-lo)*.12||1;
+    const P={l:38,r:10,t:8,b:22},pw=w-P.l-P.r,ph=h-P.t-P.b;
+    const Y=v2=>P.t+(1-(v2-(lo-pad))/((hi+pad)-(lo-pad)))*ph;
+    const X=i=>P.l+(i/(vals.length-1||1))*pw;
+    g.font='9px "IBM Plex Mono"';
+    const st=niceStep((hi-lo)/5);
+    for(let tv=Math.ceil((lo-pad)/st)*st;tv<=hi+pad;tv+=st){
+      g.strokeStyle='rgba(130,148,184,.1)';g.beginPath();g.moveTo(P.l,Y(tv));g.lineTo(w-P.r,Y(tv));g.stroke();
+      g.fillStyle='#5a6b8f';g.textAlign='right';g.fillText(Math.round(tv),P.l-5,Y(tv)+3);}
+    g.strokeStyle='rgba(95,208,230,.9)';g.lineWidth=1.6;g.beginPath();
+    vals.forEach((v2,i)=>{i===0?g.moveTo(X(i),Y(v2)):g.lineTo(X(i),Y(v2))});g.stroke();
+    g.fillStyle='#8294b8';g.textAlign='center';
+    const every=Math.ceil(rows.length/10);
+    rows.forEach((r,i)=>{if(i%every===0||i===rows.length-1)g.fillText(String(r.year).slice(2),X(i),h-8)});}
+  /* bars */
+  {const[g,w,h]=fitCanvas(barCv);g.clearRect(0,0,w,h);
+    const rets=rows.map(r=>r.ret);
+    const lo=Math.min(0,...rets),hi=Math.max(0,...rets),pad=(hi-lo)*.1||1;
+    const P={l:38,r:10,t:8,b:22},pw=w-P.l-P.r,ph=h-P.t-P.b;
+    const Y=v2=>P.t+(1-(v2-(lo-pad))/((hi+pad)-(lo-pad)))*ph;
+    const bw=pw/rows.length;
+    g.font='9px "IBM Plex Mono"';
+    const st=niceStep((hi-lo)/5);
+    for(let tv=Math.ceil((lo-pad)/st)*st;tv<=hi+pad;tv+=st){
+      g.strokeStyle='rgba(130,148,184,.1)';g.beginPath();g.moveTo(P.l,Y(tv));g.lineTo(w-P.r,Y(tv));g.stroke();
+      g.fillStyle='#5a6b8f';g.textAlign='right';g.fillText(Math.round(tv*10)/10,P.l-5,Y(tv)+3);}
+    g.strokeStyle='rgba(130,148,184,.35)';g.beginPath();g.moveTo(P.l,Y(0));g.lineTo(w-P.r,Y(0));g.stroke();
+    rows.forEach((r,i)=>{
+      const x=P.l+i*bw+bw*.18,bw2=bw*.64;
+      g.fillStyle=r.ret>=0?'#4db6c9':'#c9605a';
+      const y0=Y(0),y1=Y(r.ret);
+      g.fillRect(x,Math.min(y0,y1),bw2,Math.max(1.5,Math.abs(y0-y1)));});
+    g.fillStyle='#8294b8';g.textAlign='center';
+    const every=Math.ceil(rows.length/10);
+    rows.forEach((r,i)=>{if(i%every===0||i===rows.length-1)g.fillText(String(r.year).slice(2),P.l+i*bw+bw/2,h-8)});}
+  /* table */
+  const dstr=d=>d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric',timeZone:'UTC'});
+  tbl.innerHTML='<tr><th>START DATE</th><th>START PRICE</th><th>END DATE</th><th>END PRICE</th><th>PROFIT</th><th>PROFIT %</th><th>MAX RISE</th><th>MAX DROP</th></tr>'+
+    rows.map(r=>`<tr>
+      <td>${dstr(r.sDate)}</td><td>${r.sPx.toFixed(2)}</td>
+      <td>${dstr(r.eDate)}</td><td>${r.ePx.toFixed(2)}</td>
+      <td style="color:${r.profit>=0?'var(--barup)':'var(--bardn)'}">${(r.profit>=0?'+':'')+r.profit.toFixed(2)}</td>
+      <td style="color:${r.ret>=0?'var(--barup)':'var(--bardn)'}">${fmtPct(r.ret,2)}</td>
+      <td style="color:var(--barup)">${fmtPct(r.maxRise,2)}</td>
+      <td style="color:${r.maxDrop<0?'var(--bardn)':'var(--mut)'}">${fmtPct(r.maxDrop,2)}</td></tr>`).join('');
+}
+
+/* ---------- heatmap ---------- */
+function renderHeat(){
+  const v=state.view,rec=v.rec,t=document.getElementById('heatTable');
+  let maxAbs=0;
+  v.act.forEach(y=>rec.years[y].monthRets.forEach(r=>{if(r!=null)maxAbs=Math.max(maxAbs,Math.abs(r))}));
+  const winMap={};
+  if(state.win){const st=windowStats(rec,v.act,state.win.i0,state.win.i1,state.win.wrap);
+    if(st)st.rows.forEach(r=>winMap[r.label]=r.ret);}
+  let html='<tr><th>YEAR</th>'+MON.map(m=>`<th>${m}</th>`).join('')+'<th>YTD</th>'+(state.win?'<th style="color:var(--blue)">WINDOW</th>':'')+'</tr>';
+  for(const y of v.act){
+    const yr=rec.years[y];
+    html+=`<tr><td class="yr">${y}</td>`;
+    html+=yr.monthRets.map((r,m)=>{
+      if(r==null)return'<td style="color:var(--dim)">·</td>';
+      const a=.08+.5*Math.min(1,Math.abs(r)/maxAbs);
+      return `<td data-m="${m+1}" style="background:${r>=0?`rgba(47,201,129,${a})`:`rgba(242,86,114,${a})`};color:${r>=0?'#c9f5e2':'#ffd6de'}" title="${MON[m]} ${y}: ${fmtPct(r,2)}">${(r*100).toFixed(1)}</td>`;}).join('');
+    const an=yr.annRet;
+    html+=`<td class="ann" style="color:${an>=0?'var(--up)':'var(--dn)'}">${fmtPct(an)}</td>`;
+    if(state.win){const wr=winMap[String(y)];
+      html+=`<td class="ann" style="color:${wr==null?'var(--dim)':wr>=0?'var(--blue)':'var(--dn)'}">${wr==null?'—':fmtPct(wr)}</td>`;}
+    html+='</tr>';}
+  html+='<tr class="avgrow"><td class="yr" style="color:var(--amber2)">AVG</td>';
+  for(let m=0;m<12;m++){
+    const rs=v.act.map(y=>rec.years[y].monthRets[m]).filter(r=>r!=null);
+    const avg=rs.reduce((a,b)=>a+b,0)/rs.length,wr=rs.filter(r=>r>0).length/rs.length;
+    html+=`<td>${(avg*100).toFixed(1)}<span class="wrsub">${(wr*100).toFixed(0)}% wr</span></td>`;}
+  const anns=v.act.map(y=>rec.years[y].annRet);
+  html+=`<td>${fmtPct(anns.reduce((a,b)=>a+b,0)/anns.length)}</td>`+(state.win?'<td>—</td>':'')+'</tr>';
+  t.innerHTML=html;
+  t.querySelectorAll('td[data-m]').forEach(td=>td.addEventListener('click',()=>{
+    const m=+td.dataset.m;
+    state.win={i0:dateToGrid(m,1),i1:dateToGrid(m,28),wrap:false};state.focusPhase=-1;
+    syncSelectsFromWin();refreshWindowConsumers();}));
+}
+
+/* ---------- KPIs / insight / quote ---------- */
+function setKpi(id,txt){const el=document.getElementById(id);if(el.textContent!==txt){el.textContent=txt;
+  const p=el.closest('.kpi');p.classList.remove('flash');void p.offsetWidth;p.classList.add('flash');}}
+function renderKPIs(){
+  const k=state.view.kpi;
+  setKpi('kAnn',fmtPct(k.avgAnn));
+  document.getElementById('kVol').textContent='σ ANN. VOL '+(k.vol*100).toFixed(1)+'%';
+  setKpi('kPos',k.posN+'/'+k.n);
+  document.getElementById('kCons').textContent='PATTERN CONSISTENCY r='+state.view.cons.toFixed(2);
+  setKpi('kBestV',k.best?fmtPct(k.best.stats.mean):'—');
+  document.getElementById('kBestL').textContent=k.best?gridLabel(k.best.i0)+' → '+gridLabel(k.best.i1)+' · WIN '+(k.best.stats.win*100).toFixed(0)+'%':'—';
+  setKpi('kWorstV',k.worst?fmtPct(k.worst.stats.mean):'—');
+  document.getElementById('kWorstL').textContent=k.worst?gridLabel(k.worst.i0)+' → '+gridLabel(k.worst.i1)+' · WIN '+(k.worst.stats.win*100).toFixed(0)+'%':'—';
+  setKpi('kCurV',k.cur?fmtPct(k.cur.stats.mean):'—');
+  document.getElementById('kCurL').textContent=k.cur?(k.cur.up?'BULLISH ':'BEARISH ')+gridLabel(k.cur.i0)+' → '+gridLabel(k.cur.i1):'—';
+  const upPh=state.view.phases.filter(p=>p.up&&p.i1-p.i0>=14).sort((a,b)=>b.stats.mean-a.stats.mean)[0];
+  const dnPh=state.view.phases.filter(p=>!p.up&&p.i1-p.i0>=14).sort((a,b)=>a.stats.mean-b.stats.mean)[0];
+  document.getElementById('insightBar').innerHTML=
+    `◆ SEASONAL READ — <b>${state.sym}</b>: strongest historical tail <span class="ins-up">${upPh?gridLabel(upPh.i0)+'→'+gridLabel(upPh.i1)+' avg '+fmtPct(upPh.stats.mean)+' ('+(upPh.stats.win*100).toFixed(0)+'% win)':'n/a'}</span> · heaviest drag <span class="ins-dn">${dnPh?gridLabel(dnPh.i0)+'→'+gridLabel(dnPh.i1)+' avg '+fmtPct(dnPh.stats.mean):'n/a'}</span> · pattern correlation <b>${state.view.cons.toFixed(2)}</b> · sample <b>${k.n} years</b>${state.detrend?' · <b>DETRENDED</b>':''}`;
+}
+function renderQuote(){
+  const rec=DATA[state.sym],lastDay=CAL[2024][CAL[2024].length-1].date;
+  document.getElementById('qName').textContent=state.sym+' · '+rec.def.name;
+  document.getElementById('qSub').textContent=rec.def.sector+' · SINGLE-LINE MEAN PROFILE · '+YEARS_ALL.length+'Y HISTORY';
+  document.getElementById('chartTitle').innerHTML=`SEASONAL TREND OF <b>${rec.def.name.toUpperCase()}</b> OVER <b>${state.active.size} YEARS</b> (JAN 1 → DEC 31, REBASED 100)`;
+  document.getElementById('qPx').textContent=fmtPx(rec.last);
+  const chg=rec.last/rec.prev-1,el=document.getElementById('qChg');
+  el.textContent=fmtPct(chg,2);el.className='q-chg '+(chg>=0?'up':'dn');
+  document.getElementById('asOf').textContent=lastDay.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'2-digit',year:'numeric',timeZone:'UTC'}).toUpperCase();
+  const sc=document.getElementById('sparkCv'),g=sc.getContext('2d');g.clearRect(0,0,128,40);
+  const c=Array.from(rec.years[2024].grid);let lo=Math.min(...c),hi=Math.max(...c);
+  g.strokeStyle=rec.years[2024].annRet>=0?'#2fc981':'#f25672';g.lineWidth=1.5;g.beginPath();
+  for(let i=0;i<N;i+=4){const x=i/(N-1)*126+1,y=36-(c[i]-lo)/(hi-lo||1)*32;i===0?g.moveTo(x,y):g.lineTo(x,y)}
+  g.stroke();
+}
+function buildPills(){
+  const row=document.getElementById('symRow');
+  row.innerHTML=SYMS.map(d=>{
+    const rec=DATA[d.sym],chg=rec.last/rec.prev-1;
+    const c=Array.from(rec.years[2024].grid);let lo=Math.min(...c),hi=Math.max(...c);
+    let pts='';for(let i=0;i<N;i+=6){pts+=`${(i/(N-1)*60).toFixed(1)},${(16-(c[i]-lo)/(hi-lo||1)*13).toFixed(1)} `}
+    return `<div class="sympill ${d.sym===state.sym?'on':''}" data-s="${d.sym}">
+      <div><div class="t" style="color:${d.c}">${d.sym}</div><div class="n">${d.name}</div></div>
+      <svg width="60" height="18"><polyline points="${pts}" fill="none" stroke="${rec.years[2024].annRet>=0?'#2fc981':'#f25672'}" stroke-width="1.3"/></svg>
+      <div class="chg" style="color:${chg>=0?'var(--up)':'var(--dn)'}">${fmtPct(chg,2)}</div></div>`;}).join('');
+  row.querySelectorAll('.sympill').forEach(p=>p.addEventListener('click',()=>{
+    state.sym=p.dataset.s;state.focusPhase=-1;
+    row.querySelectorAll('.sympill').forEach(x=>x.classList.toggle('on',x.dataset.s===state.sym));
+    fullRecompute();}));
+}
+function buildTape(){
+  const items=SYMS.map(d=>{const rec=DATA[d.sym],chg=rec.last/rec.prev-1;
+    return `<div class="tape-item"><span class="s">${d.sym}</span><span class="p">${fmtPx(rec.last)}</span><span class="c ${chg>=0?'up':'dn'}">${fmtPct(chg,2)}</span></div>`}).join('')
+    +`<div class="tape-item"><span class="m">KAIROS FEED</span><span class="p">SINGLE-LINE MEAN PROFILE · 253-PT GRID</span></div>`;
+  document.getElementById('tapeTrack').innerHTML=items+items;
+}
+function renderChips(){
+  const rec=DATA[state.sym],el=document.getElementById('yearChips');
+  el.innerHTML=YEARS_ALL.map(y=>`<span class="chip ${rec.years[y].annRet>=0?'up':'dn'} ${state.active.has(y)?'':'off'}" data-y="${y}" title="${fmtPct(rec.years[y].annRet)}">${y}</span>`).join('');
+  el.querySelectorAll('.chip').forEach(c=>c.addEventListener('click',()=>{
+    const y=+c.dataset.y;
+    if(state.active.has(y)){if(state.active.size>2)state.active.delete(y)}else state.active.add(y);
+    fullRecompute(false);}));
+}
+function refreshWindowConsumers(){renderPhases();renderWindow();renderHeat();renderPattern();draw()}
+function fullRecompute(doAnim=true){
+  computeView();renderQuote();renderChips();renderPhases();renderWindow();renderHeat();renderPattern();renderKPIs();
+  doAnim?animate():draw();
+}
+
+document.querySelectorAll('.qbtn[data-q]').forEach(b=>b.addEventListener('click',()=>{
+  const q=b.dataset.q;state.active=new Set(q==='all'?YEARS_ALL:YEARS_ALL.slice(-+q));
+  fullRecompute();}));
+function bindToggle(id,key){const el=document.getElementById(id);
+  el.addEventListener('click',()=>{state.show[key]=!state.show[key];el.classList.toggle('on',state.show[key]);draw()})}
+bindToggle('tglYears','years');bindToggle('tglMedian','median');bindToggle('tglBand','band');bindToggle('tglBench','bench');
+document.querySelectorAll('#segScale button').forEach(b=>b.addEventListener('click',()=>{
+  state.scale=b.dataset.v;
+  document.querySelectorAll('#segScale button').forEach(x=>x.classList.toggle('on',x===b));
+  updateAxisNote();draw();}));
+document.querySelectorAll('#segSmooth button').forEach(b=>b.addEventListener('click',()=>{
+  state.smooth=+b.dataset.v;
+  document.querySelectorAll('#segSmooth button').forEach(x=>x.classList.toggle('on',x===b));
+  fullRecompute();}));
+document.getElementById('tglDetrend').addEventListener('change',e=>{state.detrend=e.target.checked;updateAxisNote();fullRecompute()});
+function updateAxisNote(){document.getElementById('axisNote').innerHTML=`INDEXED TO 100 ON JAN 1<br>MEAN PROFILE · ${state.scale==='log'?'LOG':'LINEAR'}${state.detrend?' · DETRENDED':''}`}
+document.getElementById('btnWinApply').addEventListener('click',()=>{
+  const i0=dateToGrid(+selSM.value,+selSD.value),i1=dateToGrid(+selEM.value,+selED.value);
+  state.win={i0:Math.min(i0,i1),i1:Math.max(i0,i1),wrap:i1<i0};state.focusPhase=-1;
+  refreshWindowConsumers();});
+document.getElementById('btnWinClear').addEventListener('click',()=>{state.win=null;state.focusPhase=-1;refreshWindowConsumers()});
+document.getElementById('btnCsv').addEventListener('click',()=>{
+  const v=state.view;let csv='date,mean,median,p25,p75\n';
+  for(let i=0;i<N;i++)csv+=`${gridLabel(i)},${v.dMean[i].toFixed(2)},${v.dMed[i].toFixed(2)},${v.dP25[i].toFixed(2)},${v.dP75[i].toFixed(2)}\n`;
+  csv+='\nphase_from,phase_to,direction,avg_return,win_rate\n';
+  v.phases.forEach(p=>csv+=`${gridLabel(p.i0)},${gridLabel(p.i1)},${p.up?'UP':'DOWN'},${(p.stats.mean*100).toFixed(2)}%,${(p.stats.win*100).toFixed(0)}%\n`);
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+  a.download=`KAIROS_${state.sym}_seasonality.csv`;a.click();});
+window.addEventListener('resize',()=>{sizeCanvas();draw();renderPattern()});
+
+function init(){
+  initSelects();buildPills();buildTape();sizeCanvas();
+  computeView();
+  // Seasonax-style: preload the strongest phase as the active window
+  const b=state.view.kpi.best;
+  if(b){state.win={i0:b.i0,i1:b.i1,wrap:false};syncSelectsFromWin();}
+  fullRecompute();
+  new ResizeObserver(()=>{sizeCanvas();draw();renderPattern()}).observe(wrapEl);
+  const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target)}}),{threshold:.08});
+  document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+}
+init();
+</script>
+</body>
+</html>
